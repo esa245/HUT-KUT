@@ -1,0 +1,6 @@
+{
+  "name": "HUT KUT TAP - Loys Coin",
+  "description": "Tap-to-Earn crypto game featuring the Golden Fox Loys Coin with multi-touch tapping, boosts, passive mining, tasks, and Bengali/English localization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

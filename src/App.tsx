@@ -15,12 +15,12 @@ import { AirdropView } from './components/AirdropView';
 import { BottomNav, NavTab } from './components/BottomNav';
 import { OfflineEarningsModal } from './components/OfflineEarningsModal';
 import { RankModal } from './components/RankModal';
+import { AdminPanel } from './components/AdminPanel';
 import {
   FOX_RANKS,
   INITIAL_MINING_UPGRADES,
   INITIAL_BOOST_ITEMS,
   INITIAL_TASKS,
-  INITIAL_LEADERBOARD,
   DAILY_STREAK_REWARDS,
   getDailyStreakReward,
 } from './utils/constants';
@@ -33,9 +33,16 @@ import {
   ReferralFriend,
 } from './types/game';
 import { soundManager } from './utils/audio';
+import {
+  getUserAirdropCode,
+  syncUserToFirebase,
+  rewardReferrer
+} from './utils/firebase';
 
 export default function App() {
   // --- Persistent State ---
+  const [userAirdropCode] = useState<string>(() => getUserAirdropCode());
+
   const [coins, setCoins] = useState<number>(() => {
     const saved = localStorage.getItem('loys_coins');
     return saved !== null ? Number(saved) : 0;
@@ -90,7 +97,23 @@ export default function App() {
     const saved = localStorage.getItem('loys_tasks');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        let parsed: TaskItem[] = JSON.parse(saved);
+        // Exclude reach_lvl3 (Golden Fox) completely
+        parsed = parsed.filter(t => t.id !== 'reach_lvl3');
+        // Ensure all 5 tasks from INITIAL_TASKS exist
+        const ids = new Set(parsed.map(t => t.id));
+        for (const initT of INITIAL_TASKS) {
+          if (!ids.has(initT.id)) {
+            parsed.push({ ...initT });
+          }
+        }
+        return parsed.map(t => {
+          if (t.type === 'social' && t.id !== 'invite_friend') {
+            const { actionUrl, ...rest } = t;
+            return rest as TaskItem;
+          }
+          return t;
+        });
       } catch {}
     }
     return INITIAL_TASKS;
@@ -158,6 +181,19 @@ export default function App() {
 
   // Modals
   const [showRankModal, setShowRankModal] = useState<boolean>(false);
+  const [showAdminPanel, setShowAdminPanel] = useState<boolean>(false);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(() => {
+    const hasSeenWelcome = localStorage.getItem('loys_has_seen_welcome');
+    if (!hasSeenWelcome) {
+      // Give 100 HUT KUT tokens (converted tokens) on first entry
+      const currentConverted = Number(localStorage.getItem('loys_converted_tokens') || '0');
+      if (currentConverted === 0) {
+        localStorage.setItem('loys_converted_tokens', '100');
+      }
+      return true;
+    }
+    return false;
+  });
   const [offlineEarnings, setOfflineEarnings] = useState<{ amount: number; hours: number } | null>(
     null
   );
@@ -182,7 +218,22 @@ export default function App() {
       localStorage.setItem('loys_free_turbo', '3');
       localStorage.setItem('loys_last_daily_reset', todayStr);
     }
-  }, []);
+
+    // --- Referral Detection System ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('start') || urlParams.get('ref');
+    const myCode = localStorage.getItem('loys_airdrop_code');
+    const alreadyReferred = localStorage.getItem('loys_referred_by');
+
+    if (refCode && myCode && refCode !== myCode && !alreadyReferred) {
+      localStorage.setItem('loys_referred_by', refCode);
+
+      // Trigger server-side/RTDB referral reward
+      rewardReferrer(refCode, myCode);
+      
+      console.log(`Referral detected: ${refCode} referred ${myCode}`);
+    }
+  }, [language]);
 
   // --- Dynamic Calculations ---
   const multitapBoost = boostItems.find((b) => b.id === 'multitap');
@@ -190,8 +241,7 @@ export default function App() {
   const rechargeBoost = boostItems.find((b) => b.id === 'rechargeSpeed');
 
   const multitapLevel = multitapBoost ? multitapBoost.level : 1;
-  const dailyStreakBonus = Math.max(0, dailyStreakDay - 1);
-  const clickPower = multitapLevel + dailyTapPower + dailyStreakBonus;
+  const clickPower = multitapLevel + dailyTapPower;
 
   const currentRank = useMemo(() => {
     return FOX_RANKS.find((r) => r.level === level) || FOX_RANKS[0];
@@ -243,9 +293,19 @@ export default function App() {
   useEffect(() => {
     const lastActiveStr = localStorage.getItem('loys_last_active_time');
     const now = Date.now();
-    if (lastActiveStr && autoEarn10Min > 0) {
-      const elapsedSeconds = Math.max(0, (now - Number(lastActiveStr)) / 1000);
-      if (elapsedSeconds >= 600) {
+    
+    if (lastActiveStr) {
+      const lastActive = Number(lastActiveStr);
+      const elapsedSeconds = Math.max(0, (now - lastActive) / 1000);
+      
+      // 1. Energy catch-up
+      if (elapsedSeconds > 1) {
+        const restoredEnergy = elapsedSeconds * energyRegenRate;
+        setEnergy((prev) => Math.min(maxEnergy, prev + restoredEnergy));
+      }
+
+      // 2. Offline earnings check
+      if (autoEarn10Min > 0 && elapsedSeconds >= 600) {
         // Capped at 18 cycles (3 hours max offline accumulation)
         const cycles = Math.min(18, Math.floor(elapsedSeconds / 600));
         const hoursAway = (cycles * 10) / 60;
@@ -259,7 +319,7 @@ export default function App() {
       }
     }
     localStorage.setItem('loys_last_active_time', String(now));
-  }, [autoEarn10Min]);
+  }, [autoEarn10Min, maxEnergy, energyRegenRate]);
 
   // Periodic Energy Regeneration (24-hour cycle) & 10-Minute Auto Harvest Tick
   useEffect(() => {
@@ -388,13 +448,76 @@ export default function App() {
     localStorage.setItem('loys_sound_enabled', String(soundEnabled));
   }, [soundEnabled]);
 
+  // Sync current user to Firebase Realtime Database immediately on link click / app open
+  useEffect(() => {
+    syncUserToFirebase(userAirdropCode, {
+      coins: Math.floor(coins),
+      level,
+      totalTaps,
+      diamonds,
+      profitPerHour: autoEarn10Min * 6,
+    });
+  }, [userAirdropCode]);
+
+  // Sync User Stats with Firebase Realtime Database in real-time (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      syncUserToFirebase(userAirdropCode, {
+        coins: Math.floor(coins),
+        level,
+        totalTaps,
+        diamonds,
+        profitPerHour: autoEarn10Min * 6,
+      });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [coins, level, totalTaps, diamonds, userAirdropCode, autoEarn10Min]);
+
+  // Purge reach_lvl3 from tasks and ensure mining progress is in sync with upgrades
+  useEffect(() => {
+    const totalMiningUpgrades = miningUpgrades.reduce((sum, m) => sum + m.level, 0);
+    setTasks((prev) => {
+      let changed = false;
+      let next = prev.filter((t) => t.id !== 'reach_lvl3');
+      if (next.length !== prev.length) changed = true;
+
+      const ids = new Set(next.map((t) => t.id));
+      for (const initT of INITIAL_TASKS) {
+        if (!ids.has(initT.id)) {
+          next.push({ ...initT });
+          changed = true;
+        }
+      }
+
+      next = next.map((t) => {
+        if (t.id === 'own_mining_3' && !t.completed && !t.claimed) {
+          const req = t.requiredProgress || 3;
+          if (t.currentProgress !== totalMiningUpgrades) {
+            changed = true;
+            return {
+              ...t,
+              currentProgress: totalMiningUpgrades,
+              completed: totalMiningUpgrades >= req,
+            };
+          }
+        }
+        return t;
+      });
+
+      if (changed) {
+        localStorage.setItem('loys_tasks', JSON.stringify(next));
+      }
+      return changed ? next : prev;
+    });
+  }, [miningUpgrades]);
+
   // Update task progress for achievements
-  const updateTaskProgress = useCallback((achievementType: 'tap' | 'level' | 'mining', val: number) => {
+  const updateTaskProgress = useCallback((achievementType: 'tap' | 'mining', val: number) => {
     setTasks((prevTasks) =>
       prevTasks.map((task) => {
         if (task.completed || task.claimed) return task;
 
-        if (achievementType === 'tap' && (task.id === 'tap_100' || task.id === 'tap_1000')) {
+        if (achievementType === 'tap' && task.id.startsWith('tap_')) {
           const newProg = val;
           const req = task.requiredProgress || 1;
           return {
@@ -404,19 +527,12 @@ export default function App() {
           };
         }
 
-        if (achievementType === 'level' && task.id === 'reach_lvl3') {
-          return {
-            ...task,
-            currentProgress: val,
-            completed: val >= 3,
-          };
-        }
-
         if (achievementType === 'mining' && task.id === 'own_mining_3') {
+          const req = task.requiredProgress || 3;
           return {
             ...task,
             currentProgress: val,
-            completed: val >= 3,
+            completed: val >= req,
           };
         }
 
@@ -571,8 +687,8 @@ export default function App() {
         m.id === upgradeId ? { ...m, level: m.level + 1 } : m
       );
 
-      const ownedCount = updated.filter((m) => m.level > 0).length;
-      updateTaskProgress('mining', ownedCount);
+      const totalUpgradesCount = updated.reduce((sum, m) => sum + m.level, 0);
+      updateTaskProgress('mining', totalUpgradesCount);
 
       return updated;
     });
@@ -632,7 +748,26 @@ export default function App() {
     }
 
     setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, claimed: true } : t))
+      prev.map((t) => {
+        if (t.id === taskId) {
+          // Mining upgrades requirement increases by 3 each time (৩ টা বা ৪ টা করে বাড়তে থাকবে)
+          const nextRequired = t.id === 'own_mining_3'
+            ? (t.requiredProgress || 3) + 3
+            : Math.round((t.requiredProgress || 100) * 1.5);
+          const nextCoins = Math.round(t.rewardCoins * 1.5);
+          const nextDiamonds = t.rewardDiamonds ? t.rewardDiamonds + 1 : 1;
+          const currentProg = t.currentProgress || 0;
+          return {
+            ...t,
+            requiredProgress: nextRequired,
+            rewardCoins: nextCoins,
+            rewardDiamonds: nextDiamonds,
+            completed: currentProg >= nextRequired,
+            claimed: false,
+          };
+        }
+        return t;
+      })
     );
 
     confetti({
@@ -675,16 +810,16 @@ export default function App() {
 
   const hasTasksAvailable = useMemo(() => {
     const oneDayMs = 24 * 60 * 60 * 1000;
-    const canClaimDaily = Date.now() - lastDailyClaimTimestamp >= oneDayMs;
+    const canClaimDaily = lastDailyClaimTimestamp === 0 || Date.now() - lastDailyClaimTimestamp >= oneDayMs;
     const hasUnclaimedQuests = tasks.some((t) => t.completed && !t.claimed);
     return canClaimDaily || hasUnclaimedQuests;
-  }, [lastDailyClaimTimestamp, tasks]);
+  }, [tasks, lastDailyClaimTimestamp]);
 
   const isHomeTab = activeTab === 'home' || activeTab === 'tap';
 
   return (
-    <div className="w-full h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-black text-white flex flex-col overflow-hidden relative">
-      <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col overflow-hidden relative h-full">
+    <div className="w-full h-screen h-[100dvh] bg-gradient-to-b from-slate-900 via-slate-950 to-black text-white flex flex-col overflow-hidden relative">
+      <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col overflow-hidden min-h-0 relative h-full">
         {/* Auto Drop Notification Toast */}
         {autoDropNotification !== null && (
           <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-xs px-4 py-2 rounded-2xl shadow-xl shadow-emerald-500/40 border border-emerald-400 flex items-center gap-2 animate-bounce pointer-events-none">
@@ -758,7 +893,6 @@ export default function App() {
             freeTurboLeft={freeTurboLeft}
             isTurboActive={isTurboActive}
             dailyTapPower={dailyTapPower}
-            dailyStreakDay={dailyStreakDay}
             lastDailyTapClaimTimestamp={lastDailyTapClaimTimestamp}
             language={language}
             onUseRefill={handleUseRefill}
@@ -772,12 +906,7 @@ export default function App() {
         {activeTab === 'tasks' && (
           <TasksView
             tasks={tasks}
-            dailyStreakDay={dailyStreakDay}
-            lastDailyClaimTimestamp={lastDailyClaimTimestamp}
-            streakResetNotice={streakResetNotice}
             language={language}
-            onClaimDailyStreak={handleClaimDailyStreak}
-            onResetDailyStreak={handleResetDailyStreak}
             onClaimTask={handleClaimTask}
             onCompleteTaskAction={handleCompleteTaskAction}
             onBack={() => setActiveTab('home')}
@@ -791,7 +920,16 @@ export default function App() {
             profitPerHour={autoEarn10Min * 6}
             totalTaps={totalTaps}
             language={language}
+            onUpdateCoins={(newCoins) => {
+              setCoins(newCoins);
+              localStorage.setItem('loys_coins', String(newCoins));
+            }}
+            onUpdateDiamonds={(newDiamonds) => {
+              setDiamonds(newDiamonds);
+              localStorage.setItem('loys_diamonds', String(newDiamonds));
+            }}
             onBack={() => setActiveTab('home')}
+            onOpenAdmin={() => setShowAdminPanel(true)}
           />
         )}
 
@@ -802,31 +940,82 @@ export default function App() {
           language={language}
           hasTasksAvailable={hasTasksAvailable}
         />
-
         {/* Rank & Leaderboard Modal */}
         {showRankModal && (
           <RankModal
             currentRank={currentRank}
             userCoins={Math.floor(coins)}
             userLevel={level}
-            leaderboard={INITIAL_LEADERBOARD}
+            userAirdropCode={userAirdropCode}
             language={language}
             onClose={() => setShowRankModal(false)}
           />
         )}
 
-        {/* Welcome Back / Offline Earnings Modal */}
-        {offlineEarnings && (
-          <OfflineEarningsModal
-            amount={offlineEarnings.amount}
-            hoursAway={offlineEarnings.hours}
-            language={language}
-            onClaim={() => {
-              setCoins((prev) => prev + offlineEarnings.amount);
-              setOfflineEarnings(null);
-            }}
-          />
+        {/* Admin Panel */}
+        {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
+
+        {/* First-time Welcome & 100 Coins Offer Popup */}
+        {showWelcomePopup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+            <div className="w-full max-w-sm p-6 rounded-3xl bg-gradient-to-b from-slate-900 to-slate-950 border border-amber-500/40 shadow-2xl text-center relative overflow-hidden">
+              {/* Glow effect */}
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-yellow-500/20 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-slate-950 mx-auto shadow-lg shadow-amber-500/40 mb-3 animate-bounce">
+                <span className="text-3xl">🎁</span>
+              </div>
+
+              <h3 className="text-lg font-black text-white mb-1">
+                {language === 'bn' ? 'স্বাগতম! প্রথমবার ফ্রি উপহার 🎉' : 'Welcome! Free Welcome Gift 🎉'}
+              </h3>
+              <p className="text-xs text-slate-300 mb-4 leading-relaxed">
+                {language === 'bn'
+                  ? 'আপনি প্রথমবার প্রবেশ করেছেন! আপনার এয়ারড্রপ ব্যালেন্সে যোগ হয়েছে ১০০ HUT KUT টোকেন, যা এখনই BTT কয়েন হিসেবে উইথড্র করতে পারবেন!'
+                  : 'You entered for the first time! 100 HUT KUT tokens have been added to your airdrop balance, ready to withdraw as BTT coins!'}
+              </p>
+
+              <div className="p-3 rounded-2xl bg-slate-950 border border-amber-500/30 mb-5 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-300">
+                  {language === 'bn' ? 'ফ্রি এয়ারড্রপ ব্যালেন্স:' : 'Free Airdrop Balance:'}
+                </span>
+                <span className="text-sm font-black text-amber-400">
+                  +100 HUT KUT (100 BTT)
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    soundManager.playUpgrade();
+                    localStorage.setItem('loys_has_seen_welcome', 'true');
+                    setShowWelcomePopup(false);
+                    // Navigate to Airdrop / Withdraw page
+                    setActiveTab('airdrop');
+                  }}
+                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs transition-all active:scale-95 shadow-lg shadow-emerald-500/30 cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>💸</span>
+                  <span>{language === 'bn' ? 'এখনই উইথড্র করুন (BTT)' : 'Withdraw BTT Now'}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    soundManager.playClick();
+                    localStorage.setItem('loys_has_seen_welcome', 'true');
+                    setShowWelcomePopup(false);
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-all active:scale-95 cursor-pointer"
+                >
+                  {language === 'bn' ? 'পরে উইথড্র করব' : 'Claim & Play'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
+
+
       </div>
     </div>
   );

@@ -44,7 +44,7 @@ export const MiningView: React.FC<MiningViewProps> = ({
   const timeFormatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
   return (
-    <div className="flex-1 flex flex-col px-4 py-3 overflow-y-auto pb-20 select-none max-w-4xl mx-auto w-full">
+    <div className="flex-1 flex flex-col min-h-0 px-4 py-3 overflow-y-auto pb-24 select-none max-w-4xl mx-auto w-full">
       {/* Top Navigation Bar with Back Button */}
       <div className="flex items-center justify-between mb-3">
         <button

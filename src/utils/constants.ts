@@ -1,70 +1,58 @@
 import { FoxRankInfo, MiningUpgrade, BoostItem, TaskItem, LeaderboardEntry } from '../types/game';
 
-export const FOX_RANKS: FoxRankInfo[] = [
-  {
-    level: 1,
-    nameEn: 'Bronze Fox',
-    nameBn: 'ব্রোঞ্জ ফক্স',
-    minCoins: 0,
-    maxEnergyBonus: 0,
-    color: '#cd7f32',
-    gradient: 'from-amber-700 to-amber-900',
-  },
-  {
-    level: 2,
-    nameEn: 'Silver Prowler',
-    nameBn: 'সিলভার প্রাউলার',
-    minCoins: 500,
-    maxEnergyBonus: 100,
-    color: '#94a3b8',
-    gradient: 'from-slate-400 to-slate-600',
-  },
-  {
-    level: 3,
-    nameEn: 'Golden Fox',
-    nameBn: 'গোল্ডেন ফক্স',
-    minCoins: 2500,
-    maxEnergyBonus: 250,
-    color: '#fbbf24',
-    gradient: 'from-amber-400 to-yellow-600',
-  },
-  {
-    level: 4,
-    nameEn: 'Diamond Striker',
-    nameBn: 'ডায়মন্ড স্ট্রাইকার',
-    minCoins: 10000,
-    maxEnergyBonus: 450,
-    color: '#38bdf8',
-    gradient: 'from-sky-400 to-blue-600',
-  },
-  {
-    level: 5,
-    nameEn: 'Master Loys',
-    nameBn: 'মাস্টার লয়েস',
-    minCoins: 35000,
-    maxEnergyBonus: 700,
-    color: '#c084fc',
-    gradient: 'from-purple-500 to-indigo-700',
-  },
-  {
-    level: 6,
-    nameEn: 'Grandmaster Hut Kut',
-    nameBn: 'গ্র্যান্ডমাস্টার হাট কুট',
-    minCoins: 100000,
-    maxEnergyBonus: 1000,
-    color: '#f43f5e',
-    gradient: 'from-rose-500 to-amber-600',
-  },
-  {
-    level: 7,
-    nameEn: 'Legendary Emperor Fox',
-    nameBn: 'লিজেন্ডারি ফক্স সম্রাট',
-    minCoins: 300000,
-    maxEnergyBonus: 1500,
-    color: '#eab308',
-    gradient: 'from-yellow-300 via-amber-500 to-orange-600',
-  },
-];
+export const FOX_RANKS: FoxRankInfo[] = Array.from({ length: 100 }, (_, index) => {
+  const lvl = index + 1;
+  let nameEn = `Fox Rank ${lvl}`;
+  let nameBn = `ফক্স র‍্যাঙ্ক ${lvl}`;
+  let color = '#38bdf8';
+  let gradient = 'from-sky-400 to-blue-600';
+
+  if (lvl === 1) {
+    nameEn = 'Bronze Fox';
+    nameBn = 'ব্রোঞ্জ ফক্স';
+    color = '#cd7f32';
+    gradient = 'from-amber-700 to-amber-900';
+  } else if (lvl === 25) {
+    nameEn = 'Silver Prowler';
+    nameBn = 'সিলভার প্রাউলার';
+    color = '#94a3b8';
+    gradient = 'from-slate-400 to-slate-600';
+  } else if (lvl === 50) {
+    nameEn = 'Golden Fox';
+    nameBn = 'গোল্ডেন ফক্স';
+    color = '#fbbf24';
+    gradient = 'from-amber-400 to-yellow-600';
+  } else if (lvl === 75) {
+    nameEn = 'Master Loys';
+    nameBn: 'মাস্টার লয়েস';
+    color = '#c084fc';
+    gradient = 'from-purple-500 to-indigo-700';
+  } else if (lvl === 100) {
+    nameEn = 'Legendary Emperor Fox (100)';
+    nameBn: 'লিজেন্ডারি ফক্স সম্রাট (১০০)';
+    color = '#eab308';
+    gradient = 'from-yellow-300 via-amber-500 to-orange-600';
+  }
+
+  // Level 1 = 0, Level 2 = 100,000 (1 Lakh), Level 100 = 1,000,000,000 (1000 Million / 1 Billion) coins
+  const minCoins =
+    lvl === 1
+      ? 0
+      : lvl === 100
+      ? 1000000000
+      : Math.round(100000 * Math.pow(1.09854, lvl - 2));
+  const maxEnergyBonus = (lvl - 1) * 50;
+
+  return {
+    level: lvl,
+    nameEn,
+    nameBn,
+    minCoins,
+    maxEnergyBonus,
+    color,
+    gradient,
+  };
+});
 
 // Mining upgrades: Auto earn per 10 minutes (১০ মিনিট পর পর অটো ব্যালেন্সে যোগ হবে)
 export const INITIAL_MINING_UPGRADES: MiningUpgrade[] = [
@@ -156,45 +144,6 @@ export const INITIAL_BOOST_ITEMS: BoostItem[] = [
 
 export const INITIAL_TASKS: TaskItem[] = [
   {
-    id: 'telegram_channel',
-    titleKey: 'task_telegram',
-    rewardCoins: 500,
-    rewardDiamonds: 1,
-    completed: false,
-    claimed: false,
-    type: 'social',
-    actionUrl: 'https://t.me',
-  },
-  {
-    id: 'twitter_follow',
-    titleKey: 'task_twitter',
-    rewardCoins: 500,
-    rewardDiamonds: 1,
-    completed: false,
-    claimed: false,
-    type: 'social',
-    actionUrl: 'https://x.com',
-  },
-  {
-    id: 'youtube_sub',
-    titleKey: 'task_youtube',
-    rewardCoins: 800,
-    rewardDiamonds: 1,
-    completed: false,
-    claimed: false,
-    type: 'social',
-    actionUrl: 'https://youtube.com',
-  },
-  {
-    id: 'invite_friend',
-    titleKey: 'task_invite',
-    rewardCoins: 1500,
-    rewardDiamonds: 2,
-    completed: false,
-    claimed: false,
-    type: 'social',
-  },
-  {
     id: 'tap_100',
     titleKey: 'task_tap_100',
     rewardCoins: 200,
@@ -216,15 +165,15 @@ export const INITIAL_TASKS: TaskItem[] = [
     requiredProgress: 1000,
   },
   {
-    id: 'reach_lvl3',
-    titleKey: 'task_reach_lvl3',
-    rewardCoins: 1500,
-    rewardDiamonds: 2,
+    id: 'tap_5000',
+    titleKey: 'task_tap_5000',
+    rewardCoins: 5000,
+    rewardDiamonds: 3,
     completed: false,
     claimed: false,
     type: 'achievement',
-    currentProgress: 1,
-    requiredProgress: 3,
+    currentProgress: 0,
+    requiredProgress: 5000,
   },
   {
     id: 'own_mining_3',
@@ -237,19 +186,17 @@ export const INITIAL_TASKS: TaskItem[] = [
     currentProgress: 0,
     requiredProgress: 3,
   },
-];
-
-export const INITIAL_LEADERBOARD: LeaderboardEntry[] = [
-  { rank: 1, name: 'FoxEmperor99', coins: 285000, level: 7 },
-  { rank: 2, name: 'LoysKing_BD', coins: 194000, level: 7 },
-  { rank: 3, name: 'HutKutMaster', coins: 148000, level: 7 },
-  { rank: 4, name: 'CryptoSultan', coins: 89000, level: 6 },
-  { rank: 5, name: 'CyberTanvir', coins: 52000, level: 6 },
-  { rank: 6, name: 'GoldenPawX', coins: 34000, level: 5 },
-  { rank: 7, name: 'RedFoxDhaka', coins: 21000, level: 5 },
-  { rank: 8, name: 'NeonTapPro', coins: 14000, level: 4 },
-  { rank: 9, name: 'LoysHodler', coins: 8500, level: 4 },
-  { rank: 10, name: 'SpeedyClaw', coins: 4200, level: 3 },
+  {
+    id: 'tap_20000',
+    titleKey: 'task_tap_20000',
+    rewardCoins: 20000,
+    rewardDiamonds: 5,
+    completed: false,
+    claimed: false,
+    type: 'achievement',
+    currentProgress: 0,
+    requiredProgress: 20000,
+  },
 ];
 
 export interface DailyStreakReward {
@@ -259,46 +206,17 @@ export interface DailyStreakReward {
   isMilestone?: boolean;
 }
 
+export const DAILY_STREAK_REWARDS: DailyStreakReward[] = [
+  { day: 1, coins: 500, diamonds: 0 },
+  { day: 2, coins: 1000, diamonds: 0 },
+  { day: 3, coins: 2500, diamonds: 1 },
+  { day: 4, coins: 5000, diamonds: 2 },
+  { day: 5, coins: 10000, diamonds: 3 },
+  { day: 6, coins: 20000, diamonds: 5 },
+  { day: 7, coins: 50000, diamonds: 15, isMilestone: true },
+];
+
 export const getDailyStreakReward = (day: number): DailyStreakReward => {
-  const d = Math.max(1, Math.min(100, day));
-  // Daily Streak starts at 20 coins (Day 1) and progresses to Day 100 with 100 diamonds!
-  const coins = d === 1 ? 20 : Math.round(20 + (d - 1) * 8 + Math.pow(d, 1.35));
-
-  let diamonds = 0;
-  let isMilestone = false;
-
-  if (d === 100) {
-    diamonds = 100; // Grand 100 diamonds milestone at Day 100!
-    isMilestone = true;
-  } else if (d === 75) {
-    diamonds = 50;
-    isMilestone = true;
-  } else if (d === 50) {
-    diamonds = 25;
-    isMilestone = true;
-  } else if (d === 30) {
-    diamonds = 10;
-    isMilestone = true;
-  } else if (d === 20) {
-    diamonds = 5;
-    isMilestone = true;
-  } else if (d % 10 === 0) {
-    diamonds = Math.floor(d / 10);
-    isMilestone = true;
-  } else if (d % 5 === 0) {
-    diamonds = 1;
-    isMilestone = true;
-  }
-
-  return {
-    day: d,
-    coins,
-    diamonds,
-    isMilestone,
-  };
+  const adjustedDay = ((day - 1) % 7) + 1;
+  return DAILY_STREAK_REWARDS[adjustedDay - 1] || DAILY_STREAK_REWARDS[0];
 };
-
-export const DAILY_STREAK_REWARDS: DailyStreakReward[] = Array.from(
-  { length: 100 },
-  (_, idx) => getDailyStreakReward(idx + 1)
-);

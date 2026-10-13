@@ -35,9 +35,9 @@ export const translations = {
     friendsInvited: 'Friends Invited',
     referralEarnings: 'Total Referral Reward',
     regularFriend: 'Regular Player',
-    regularReward: '+1,000 Coins & +1 Diamond',
+    regularReward: '+10,000 Coins & +100 Diamonds',
     premiumFriend: 'Telegram Premium Player',
-    premiumReward: '+3,000 Coins & +3 Diamonds',
+    premiumReward: '+100,000 Coins & +200 Diamonds',
     friendList: 'Invited Friends List',
     noFriendsYet: 'No friends invited yet. Share your link to start earning!',
     fullTank: 'Full Energy Refill',
@@ -87,12 +87,15 @@ export const translations = {
     task_invite: 'Invite a Fox Friend (Copy Link)',
     task_tap_100: 'Tap 100 times',
     task_tap_1000: 'Tap 1,000 times',
+    task_tap_5000: 'Tap 5,000 times',
+    task_tap_20000: 'Tap 20,000 times',
     task_reach_lvl3: 'Reach Golden Fox (Level 3)',
     task_own_mining: 'Own 3 Mining Cards',
     claimReward: 'Claim Reward',
     claimed: 'Claimed',
     go: 'Go',
-    linkCopied: 'Invite link copied to clipboard!',
+    webInviteLink: 'Web Invite Link',
+    telegramInviteLink: 'Telegram Invite Link',
     // Mining cards
     upgrade_fox_den: 'Fox Den',
     upgrade_fox_den_desc: 'A warm sanctuary where baby foxes gather coins',
@@ -168,9 +171,9 @@ export const translations = {
     friendsInvited: 'মোট আমন্ত্রিত বন্ধু',
     referralEarnings: 'রেফার থেকে মোট আয়',
     regularFriend: 'সাধারণ প্লেয়ার',
-    regularReward: '+১,০০০ কয়েন ও +১ ডায়মন্ড',
+    regularReward: '+১০,০০০ কয়েন ও +১০০ ডায়মন্ড',
     premiumFriend: 'টেলিগ্রাম প্রিমিয়াম প্লেয়ার',
-    premiumReward: '+৩,০০০ কয়েন ও +৩ ডায়মন্ড',
+    premiumReward: '+১,০০,০০০ কয়েন ও +২০০ ডায়মন্ড',
     friendList: 'আমন্ত্রিত ফ্রেন্ডলিস্ট',
     noFriendsYet: 'এখনও কোনো বন্ধু জয়েন করেনি। লিঙ্ক শেয়ার করে বড় আয় শুরু করুন!',
     fullTank: 'ফুল এনার্জি রিফিল',
@@ -220,11 +223,15 @@ export const translations = {
     task_invite: 'বন্ধুকে ইনভাইট করুন (লিঙ্ক কপি)',
     task_tap_100: '১০০ বার ট্যাপ করুন',
     task_tap_1000: '১,০০০ বার ট্যাপ করুন',
+    task_tap_5000: '৫,০০০ বার ট্যাপ করুন',
+    task_tap_20000: '২০,০০০ বার ট্যাপ করুন',
     task_reach_lvl3: 'গোল্ডেন ফক্স (লেভেল ৩) এ পৌঁছান',
     task_own_mining: '৩টি মাইনিং কার্ড আনলক করুন',
     claimReward: 'পুরস্কার নিন',
     claimed: 'গৃহীত',
     go: 'যান',
+    webInviteLink: 'ওয়েব ইনভাইট লিঙ্ক',
+    telegramInviteLink: 'টেলিগ্রাম ইনভাইট লিঙ্ক',
     linkCopied: 'ইনভাইট লিঙ্ক ক্লিপবোর্ডে কপি করা হয়েছে!',
     // Mining cards
     upgrade_fox_den: 'ফক্স ডেন (গুহা)',
@@ -271,16 +278,19 @@ export const translations = {
 
 export const formatNumber = (num: number, lang: Language = 'bn'): string => {
   if (num >= 1000000000) {
-    const val = (num / 1000000000).toFixed(2);
-    return `${val}B`;
+    const b = num / 1000000000;
+    const formattedB = b % 1 === 0 ? b.toString() : b.toFixed(2).replace(/\.?0+$/, '');
+    return `${formattedB}B`;
   }
   if (num >= 1000000) {
-    const val = (num / 1000000).toFixed(2);
-    return `${val}M`;
+    const m = num / 1000000;
+    const formattedM = m % 1 === 0 ? m.toString() : m.toFixed(2).replace(/\.?0+$/, '');
+    return `${formattedM}M`;
   }
   if (num >= 10000) {
-    const val = (num / 1000).toFixed(1);
-    return `${val}K`;
+    const k = num / 1000;
+    const formattedK = k % 1 === 0 ? k.toString() : k.toFixed(1).replace(/\.?0+$/, '');
+    return `${formattedK}K`;
   }
   return num.toLocaleString();
 };

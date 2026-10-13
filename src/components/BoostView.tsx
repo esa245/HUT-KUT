@@ -12,7 +12,6 @@ interface BoostViewProps {
   freeTurboLeft: number;
   isTurboActive: boolean;
   dailyTapPower: number;
-  dailyStreakDay: number;
   lastDailyTapClaimTimestamp: number;
   language: Language;
   onUseRefill: () => void;
@@ -30,7 +29,6 @@ export const BoostView: React.FC<BoostViewProps> = ({
   freeTurboLeft,
   isTurboActive,
   dailyTapPower,
-  dailyStreakDay,
   lastDailyTapClaimTimestamp,
   language,
   onUseRefill,
@@ -63,11 +61,10 @@ export const BoostView: React.FC<BoostViewProps> = ({
 
   const multitapBoost = boostItems.find((b) => b.id === 'multitap');
   const multitapLevel = multitapBoost ? multitapBoost.level : 1;
-  const dailyStreakBonus = Math.max(0, dailyStreakDay - 1);
-  const totalEffectivePower = multitapLevel + dailyTapPower + dailyStreakBonus;
+  const totalEffectivePower = multitapLevel + dailyTapPower;
 
   return (
-    <div className="flex-1 flex flex-col px-4 py-3 overflow-y-auto pb-20 select-none max-w-4xl mx-auto w-full">
+    <div className="flex-1 flex flex-col min-h-0 px-4 py-3 overflow-y-auto pb-24 select-none max-w-4xl mx-auto w-full">
       {/* Top Navigation Bar with Back Button */}
       <div className="flex items-center justify-between mb-3">
         <button
@@ -109,7 +106,7 @@ export const BoostView: React.FC<BoostViewProps> = ({
             <span>{t.totalTapPower}: </span>
             <strong className="text-amber-300 font-black">+{totalEffectivePower}</strong>
             <span className="text-slate-400 text-[10px] ml-1">
-              ({t.baseTapPower}: {multitapLevel} + {t.streakTapBonus}: {dailyStreakBonus} + {language === 'bn' ? 'ফ্রি' : 'Free'}: {dailyTapPower})
+              ({t.baseTapPower}: {multitapLevel} + {language === 'bn' ? 'ফ্রি' : 'Free'}: {dailyTapPower})
             </span>
           </div>
 

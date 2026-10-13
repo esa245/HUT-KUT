@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "Player": {
+      "title": "Player",
+      "description": "A player profile in the global leaderboard and tap game",
+      "type": "object",
+      "properties": {
+        "airdropCode": {
+          "type": "string",
+          "description": "6-digit unique player identification code",
+          "pattern": "^[0-9]{6}$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the player",
+          "maxLength": 50
+        },
+        "coins": {
+          "type": "number",
+          "description": "Total coins accumulated by the player"
+        },
+        "level": {
+          "type": "number",
+          "description": "Current fox level (1-100)"
+        },
+        "totalTaps": {
+          "type": "number",
+          "description": "Total taps performed"
+        },
+        "diamonds": {
+          "type": "number",
+          "description": "Current diamond balance"
+        },
+        "updatedAt": {
+          "type": "number",
+          "description": "Timestamp of the last sync"
+        }
+      },
+      "required": ["airdropCode", "coins", "level"]
+    },
+    "Withdrawal": {
+      "title": "Withdrawal",
+      "description": "A token withdrawal request",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Withdrawal transaction ID"
+        },
+        "airdropCode": {
+          "type": "string",
+          "description": "6-digit user airdrop code"
+        },
+        "amountHutKut": {
+          "type": "number",
+          "description": "Amount of HUT KUT tokens redeemed"
+        },
+        "amountBtt": {
+          "type": "number",
+          "description": "Amount of BTT coins requested"
+        },
+        "exchange": {
+          "type": "string",
+          "description": "Destination exchange name"
+        },
+        "exchangeId": {
+          "type": "string",
+          "description": "User UID or account ID on the destination exchange"
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "Submission timestamp"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "processing", "completed"]
+        }
+      },
+      "required": ["id", "airdropCode", "amountHutKut", "amountBtt", "exchange", "exchangeId", "timestamp", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "Player",
+      "description": "User profile collection containing game progress, coins, and 6-digit code for admin and user lookup"
+    },
+    "/players/{playerId}": {
+      "schema": "Player",
+      "description": "Global players collection for top tappers leaderboard"
+    },
+    "/withdrawals/{withdrawalId}": {
+      "schema": "Withdrawal",
+      "description": "Public or user withdrawal tracking requests"
+    }
+  }
+}

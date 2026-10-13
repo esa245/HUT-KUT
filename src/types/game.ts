@@ -46,6 +46,7 @@ export interface LeaderboardEntry {
   name: string;
   coins: number;
   level: number;
+  airdropCode?: string;
   isUser?: boolean;
 }
 
@@ -67,4 +68,15 @@ export interface FoxRankInfo {
   maxEnergyBonus: number;
   color: string;
   gradient: string;
+}
+
+export interface WithdrawalRecord {
+  id: string;
+  airdropCode?: string;
+  amountHutKut: number;
+  amountBtt: number;
+  exchange: string;
+  exchangeId: string;
+  timestamp: number;
+  status: 'pending' | 'processing' | 'completed' | 'rejected';
 }

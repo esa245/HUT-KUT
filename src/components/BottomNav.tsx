@@ -31,7 +31,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   ];
 
   return (
-    <nav className="w-full bg-slate-950/95 backdrop-blur-xl border-t border-white/10 px-1.5 py-2 flex justify-around items-center z-30 shrink-0">
+    <div className="w-full px-3 pb-14 sm:pb-20 pt-4 z-30 shrink-0">
+      <nav className="w-full bg-slate-950/95 backdrop-blur-xl border border-white/25 rounded-2xl shadow-2xl px-2.5 py-3.5 flex justify-around items-center">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isCurrentActive = activeTab === tab.id || (tab.id === 'home' && activeTab === 'tap');
@@ -43,7 +44,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               soundManager.playClick();
               onTabChange(tab.id);
             }}
-            className={`flex flex-col items-center justify-center py-1 px-2 sm:px-3 rounded-2xl transition-all relative cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1 px-2 sm:px-3 rounded-xl transition-all relative cursor-pointer ${
               isCurrentActive
                 ? 'text-amber-400 font-extrabold scale-105'
                 : 'text-slate-400 hover:text-slate-200'
@@ -51,7 +52,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           >
             {/* Active glow indicator */}
             {isCurrentActive && (
-              <span className="absolute -top-2 w-7 sm:w-8 h-1 bg-amber-400 rounded-full shadow-[0_0_10px_rgba(251,191,36,0.9)]" />
+              <span className="absolute -top-1.5 w-6 sm:w-7 h-1 bg-amber-400 rounded-full shadow-[0_0_10px_rgba(251,191,36,0.9)]" />
             )}
 
             <div className="relative">
@@ -68,6 +69,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         );
       })}
     </nav>
+    </div>
   );
 };
 

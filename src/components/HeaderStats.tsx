@@ -61,20 +61,7 @@ export const HeaderStats: React.FC<HeaderStatsProps> = ({
       {/* Top bar controls */}
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">
-          {/* Back button if not on home/tap tab */}
-          {activeTab && activeTab !== 'tap' && activeTab !== 'home' && onBackToTap && (
-            <button
-              onClick={() => {
-                soundManager.playClick();
-                onBackToTap();
-              }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-sm shadow-amber-500/20"
-              title={t.backToTap}
-            >
-              <ArrowLeft className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>{t.back}</span>
-            </button>
-          )}
+          {/* Back button if not on home/tap tab - removed as requested */}
 
           {/* Rank & Level Badge */}
           <button
@@ -98,8 +85,8 @@ export const HeaderStats: React.FC<HeaderStatsProps> = ({
           <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-emerald-950/70 border border-emerald-500/20 text-emerald-300 text-xs font-medium">
             <span className="text-emerald-400 text-[10px]">⚡</span>
             <span>+{formatLangNumber(autoEarn10Min)}/10m</span>
-            <span className="text-white/30 hidden sm:inline">|</span>
-            <span className="text-amber-300 font-mono text-[10.5px] font-bold hidden sm:inline">
+            <span className="text-white/30">|</span>
+            <span className="text-amber-300 font-mono text-[10.5px] font-bold">
               {language === 'bn' ? toBengaliDigits(timeFormatted) : timeFormatted}
             </span>
           </div>
@@ -136,7 +123,7 @@ export const HeaderStats: React.FC<HeaderStatsProps> = ({
       </div>
 
       {/* Primary Currency Row */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 my-2">
         {/* Coins Total */}
         <div className="flex items-center justify-between px-3 py-2 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-800/60 to-slate-900 border border-amber-500/20 shadow-inner">
           <div className="flex items-center gap-2 min-w-0">

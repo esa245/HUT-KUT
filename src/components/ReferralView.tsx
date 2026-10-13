@@ -3,6 +3,8 @@ import { Users, Copy, Check, Share2, Sparkles, Send, Award, Gift, ArrowLeft } fr
 import { ReferralFriend, Language } from '../types/game';
 import { translations, formatNumber, toBengaliDigits } from '../utils/translations';
 import { soundManager } from '../utils/audio';
+import { getUserAirdropCode } from '../utils/firebase';
+import { TopReferrers } from './TopReferrers';
 
 interface ReferralViewProps {
   friends: ReferralFriend[];
@@ -20,8 +22,12 @@ export const ReferralView: React.FC<ReferralViewProps> = ({
   const t = translations[language];
   const [copied, setCopied] = useState(false);
 
-  const referralCode = 'FOX' + (typeof window !== 'undefined' ? window.location.host.slice(0, 4) : '777') + '88';
-  const referralUrl = typeof window !== 'undefined' ? `${window.location.origin}/?ref=${referralCode}` : `https://loyscoin.io/?ref=${referralCode}`;
+  const myAirdropCode = getUserAirdropCode();
+  const telegramReferralUrl = `http://t.me/hutkut_taptep_bot/myapp?start=${myAirdropCode}`;
+  const webReferralUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}?ref=${myAirdropCode}`;
+
+  const [activeTab, setActiveTab] = useState<'telegram' | 'web'>('telegram');
+  const referralUrl = activeTab === 'telegram' ? telegramReferralUrl : webReferralUrl;
 
   const handleCopy = () => {
     soundManager.playClick();
@@ -34,13 +40,13 @@ export const ReferralView: React.FC<ReferralViewProps> = ({
 
   const handleTelegramShare = () => {
     soundManager.playClick();
-    const shareText = encodeURIComponent(`🦊 Join HUT KUT TAP - Loys Coin tap-to-earn game with my exclusive referral link and get 25,000 FREE coins + 💎 diamonds!\n${referralUrl}`);
-    window.open(`https://t.me/share/url?url=${encodeURIComponent(referralUrl)}&text=${shareText}`, '_blank');
+    const shareText = encodeURIComponent(`🦊 Join HUT KUT TAP - Loys Coin tap-to-earn game with my exclusive referral link and get 10,000 FREE coins + 100 💎 diamonds!\n${telegramReferralUrl}`);
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(telegramReferralUrl)}&text=${shareText}`, '_blank');
   };
 
   const handleWhatsAppShare = () => {
     soundManager.playClick();
-    const shareText = encodeURIComponent(`🦊 Join HUT KUT TAP - Loys Coin tap-to-earn game and claim 25,000 bonus coins!\n${referralUrl}`);
+    const shareText = encodeURIComponent(`🦊 Join HUT KUT TAP - Loys Coin tap-to-earn game and claim 10,000 bonus coins!\n${webReferralUrl}`);
     window.open(`https://api.whatsapp.com/send?text=${shareText}`, '_blank');
   };
 
@@ -53,7 +59,7 @@ export const ReferralView: React.FC<ReferralViewProps> = ({
   const totalDiamondsEarned = friends.reduce((sum, f) => sum + f.diamondsEarned, 0);
 
   return (
-    <div className="flex-1 flex flex-col px-4 py-3 overflow-y-auto pb-20 select-none max-w-4xl mx-auto w-full">
+    <div className="flex-1 flex flex-col min-h-0 px-4 py-3 overflow-y-auto pb-24 select-none max-w-4xl mx-auto w-full">
       {/* Top Navigation Bar with Back Button */}
       <div className="flex items-center justify-between mb-3">
         <button
@@ -80,6 +86,8 @@ export const ReferralView: React.FC<ReferralViewProps> = ({
         <h3 className="font-black text-lg text-white mb-0.5">{t.referralTitle}</h3>
         <p className="text-xs text-amber-200/80 max-w-md mx-auto leading-relaxed">{t.referralSubtitle}</p>
       </div>
+
+      <TopReferrers />
 
       {/* Rewards Tiers Box */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-4">
@@ -114,6 +122,20 @@ export const ReferralView: React.FC<ReferralViewProps> = ({
 
       {/* Referral Link & Sharing Actions */}
       <div className="p-4 rounded-2xl bg-slate-900 border border-white/10 mb-4 shadow-md">
+        <div className="flex gap-2 mb-3">
+          <button
+            onClick={() => setActiveTab('telegram')}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold ${activeTab === 'telegram' ? 'bg-slate-700 text-white' : 'bg-slate-950 text-slate-400'}`}
+          >
+            {t.telegramInviteLink}
+          </button>
+          <button
+            onClick={() => setActiveTab('web')}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold ${activeTab === 'web' ? 'bg-slate-700 text-white' : 'bg-slate-950 text-slate-400'}`}
+          >
+            {t.webInviteLink}
+          </button>
+        </div>
         <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
           {t.yourReferralLink}
         </label>
@@ -176,31 +198,6 @@ export const ReferralView: React.FC<ReferralViewProps> = ({
             +{formatLangNumber(totalDiamondsEarned)} 💎
           </div>
         </div>
-      </div>
-
-      {/* Test / Simulate Invite button */}
-      <div className="mb-4 flex gap-2">
-        <button
-          onClick={() => {
-            soundManager.playDiamond();
-            onInviteFriend(false);
-          }}
-          className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
-        >
-          <span>➕</span>
-          <span>{language === 'bn' ? 'টেস্ট রেফার (সাধারণ)' : 'Simulate Regular Friend (+25K)'}</span>
-        </button>
-
-        <button
-          onClick={() => {
-            soundManager.playDiamond();
-            onInviteFriend(true);
-          }}
-          className="flex-1 py-2 px-3 rounded-xl bg-purple-950/60 hover:bg-purple-900/60 border border-purple-500/40 text-purple-300 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
-        >
-          <span>⭐</span>
-          <span>{language === 'bn' ? 'টেস্ট প্রিমিয়াম রেফার' : 'Simulate Premium (+75K)'}</span>
-        </button>
       </div>
 
       {/* Friends List */}
